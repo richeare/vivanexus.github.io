@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des prompts</title>
+    <!-- Inclut le framework CSS Tailwind pour un style rapide et réactif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inclut la police "Inter" pour une typographie moderne -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style pour la zone de texte du nouveau prompt */
+        #new-prompt {
+            min-height: 100px;
+            overflow-y: hidden;
+        }
+        /* Style pour la zone de texte du prompt de référence */
+        #ref-prompt {
+            min-height: 100px;
+        }
+        /* Style pour la zone de liste */
+        .prompt-list-item:hover {
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        .prompt-list-item.selected {
+            border-left: 4px solid #3b82f6; /* border-blue-500 */
+            background-color: #e5e7eb; /* bg-gray-200 */
+        }
+        .active-link {
+            border-bottom: 2px solid white;
+            padding-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased flex flex-col min-h-screen">
+
+    <!-- Section d'en-tête -->
+    <header class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Search & find</h1>
+            <nav class="mt-2 md:mt-0">
+                <a href="index.html" class="mr-4 hover:underline">Recherche</a>
+                <a href="prompt.html" class="mr-4 hover:underline active-link">Prompts</a>
+                <a href="back-office.html" class="hover:underline">Back-office</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div id="top-info" class="bg-white shadow-sm py-4 text-center">
+        <p id="selected-prompt-info" class="text-lg text-gray-600">
+            <span id="selected-prompt-title">Aucun prompt sélectionné</span>
+            <span id="selected-agent-name" class="font-semibold text-gray-800"></span>
+        </p>
+    </div>
+
+    <!-- Contenu principal - 3 colonnes -->
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Colonne 1: Nouveau prompt -->
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h3 class="text-xl font-semibold mb-4">Créer un nouveau prompt</h3>
+                <input type="text" id="new-prompt-name" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-4" placeholder="Nom du prompt (ex: Rédiger un e-mail)">
+                <textarea id="new-prompt" rows="3" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none transition-all duration-300" placeholder="Écrivez votre nouveau prompt ici..."></textarea>
+                <button id="save-prompt-button" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-300">
+                    Sauvegarder
+                </button>
+            </div>
+
+            <!-- Colonne 2: Liste de prompt -->
+            <div class="bg-white rounded-xl shadow-lg p-6 overflow-y-auto max-h-96">
+                <h3 class="text-xl font-semibold mb-4">Liste de prompt</h3>
+                <!-- La liste sera générée dynamiquement par JavaScript -->
+                <div id="prompt-list" class="space-y-4">
+                    <!-- Les prompts dynamiques apparaîtront ici -->
+                </div>
+            </div>
+
+            <!-- Colonne 3: Prompt REF -->
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h3 class="text-xl font-semibold mb-4">Prompt REF</h3>
+                <div class="flex flex-col space-y-4 flex-grow">
+                    <textarea id="ref-prompt" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none flex-grow" placeholder="Le prompt de référence s'affichera ici..." disabled>
+Prompt Parfait pour la Recherche (T.C.R.E.I.)
+Tâche : Générer une analyse factuelle et rigoureuse sur le Thème donné, en respectant les Temps, Zone et Exclusions spécifiés. La réponse doit inclure une synthèse des faits clés, un tableau structuré des données vérifiables, et trois options de solutions distinctes (A/B/C) avec leurs avantages, inconvénients, risques et ressources. Le tout devra être exportable dans des formats adaptés.
+Contexte : L'objectif est de fournir des informations fiables et vérifiées, sans aucune spéculation ni invention. Chaque donnée doit être sourcée avec des liens directs et son niveau de certitude évalué. La méthode de recherche interne suit le framework A.P.P. (Analyse-Problème-Planification) pour une rigueur maximale.
+Rôle : Tu agis en tant que "[Name-AI]", un expert-chercheur rigoureux et factuel spécialisé dans le domaine de [fonction 1 du thème] et [fonction 2 du thème].
+Maîtrises : Tes compétences clés incluent :
+
+Méthode 1 : [Méthode/Outil/Technique liée au thème]
+Méthode 2 : [Méthode/Outil/Technique liée au thème]
+Méthode 3 : [Méthode/Outil/Technique liée au thème]
+Exemples : Pour une demande concernant "L'impact du télétravail sur la productivité en France entre 2020 et 2023", tu rechercherais des rapports d'organismes officiels (INSEE, Dares), des études scientifiques (articles de revues académiques), et des enquêtes d'organisations reconnues. Tu présenterais les pourcentages d'évolution de productivité cités par différentes sources, avec les dates de publication et les populations ciblées, puis tu proposerais des solutions pour optimiser le télétravail (A), ses limites (B) et des approches hybrides innovantes (C).
+Instructions :
+
+Récupérer les informations initiales de l'utilisateur : Thème, Temps, Zone, Exclusions, Ton.
+Définir le Persona : Basé sur le Thème, attribue deux fonctions d'expert-chercheur pertinentes et propose trois méthodes/outils/techniques clés spécifiques à ce domaine.
+Appliquer la méthodologie A.P.P. (interne) :
+Exploration et Définition du Problème : Clarifier la requête, reformuler la question, identifier les sous-problèmes et incertitudes.
+Planification et Recherche d'Informations : Lister les données manquantes, définir les objectifs de recherche. Utiliser les Gems "NewNew" pour l'actualité, "Fifty Fifty" pour les pourcentages/statistiques, et "Hall" pour les questions complexes. Prioriser les sources institutionnelles (.gouv, .org, .edu), médias établis, publications scientifiques, experts reconnus.
+Analyse et Croisement des données : Comparer et valider les informations d'au moins trois sources indépendantes et fiables. Évaluer crédibilité, fiabilité, actualité, objectivité. Détecter les incohérences et les biais. Si une information est incertaine, signaler explicitement : [CERTITUDE FAIBLE], "Information non vérifiable" ou "Source non confirmée". Ne jamais inventer. Utiliser https://images.google.com/ pour la vérification visuelle si pertinent.
+Synthèse et Production :
+Réponse Clé & Synthèse : Afficher en premier la réponse synthétique la plus pertinente, avec les chiffres et pourcentages en gras.
+Tableau des Faits : Présenter les données clés dans un tableau :
+| Fait / Donnée Clé | Source (avec lien HTTPS) | Date | Niveau de Certitude (Élevé/Moyen/Faible) |
+|---|---|---|---|
+Perspectives (A/B/C) : Proposer trois solutions ou angles d'analyse pour le thème :
+Option A : La proposition principale/directe.
+Option B : Une alternative/un contrepoint.
+Option C : Une approche innovante/originale.
+Chaque option doit détailler : Avantages, Inconvénients, Risques potentiels (juridiques, techniques, éthiques), Ressources nécessaires, Probabilité de réussite/fiabilité estimée.
+Sources : Lister toutes les sources utilisées avec leurs liens HTTPS.
+Ton et Modularité : Adapter le ton (A: académique, B: inspirant, C: concis, D: pédagogique - par défaut concis). Permettre la modularité de la production (bref/détaillé/exhaustif).
+Interaction Dynamique : Être prêt à répondre aux commandes approfondir, similaire, contraire, noter, cocher.
+Export/Import : Les données textuelles et les tableaux de faits doivent être exportables.
+Le Thème que tu vas me donner remplira dynamiquement les sections [Name-AI], [fonction 1], [fonction 2] et [Méthodes/Outils/Techniques] dans ce prompt.
+                    </textarea>
+                    <button id="edit-button" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-300">
+                        Modifier
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Agents AI/IA -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-6 overflow-y-auto max-h-96">
+            <h3 class="text-xl font-semibold mb-4">Agents AI/IA</h3>
+
+            <!-- Bouton pour ajouter une nouvelle catégorie -->
+            <div class="mb-4">
+                <input type="text" id="new-category-input" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-2" placeholder="Ajouter une nouvelle catégorie (ex: Design)">
+                <button id="add-category-button" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded-full shadow-md hover:bg-gray-600 transition-colors duration-300">Ajouter Catégorie</button>
+            </div>
+            
+            <!-- Le tableau des agents sera généré par JavaScript -->
+            <table class="w-full text-sm text-left text-gray-500 table-auto">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 cursor-pointer" data-sort-by="name">
+                            Nom
+                        </th>
+                        <th scope="col" class="px-4 py-3 cursor-pointer" data-sort-by="category">
+                            Catégorie
+                        </th>
+                        <th scope="col" class="px-4 py-3">
+                            Lien
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-center">
+                            Supprimer
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="ai-agents-table">
+                    <!-- Les agents dynamiques apparaîtront ici -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 1/2 page gauche pour les données textuelles -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Données textuelles du prompt</h3>
+                    <button id="export-text-button" class="bg-green-500 text-white font-semibold py-2 px-4 rounded-full shadow-md hover:bg-green-600 transition-colors duration-300">
+                        Exporter
+                    </button>
+                </div>
+                <textarea id="prompt-data-text" rows="8" class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-none flex-grow" placeholder="Les données textuelles du prompt s'afficheront ici..."></textarea>
+            </div>
+            
+            <!-- Section 1/2 page gauche pour les données structurées -->
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Données structurées du prompt</h3>
+                    <button id="export-table-button" class="bg-green-500 text-white font-semibold py-2 px-4 rounded-full shadow-md hover:bg-green-600 transition-colors duration-300">
+                        Exporter
+                    </button>
+                </div>
+                <table class="w-full text-sm text-left text-gray-500 table-auto">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 cursor-pointer" data-sort-by="nom">Nom</th>
+                            <th scope="col" class="px-4 py-3 cursor-pointer" data-sort-by="valeur">Valeur</th>
+                            <th scope="col" class="px-4 py-3">Lien</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prompt-data-table">
+                        <!-- Les données structurées dynamiques apparaîtront ici -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="bg-gray-800 text-white py-6 mt-auto">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Ma Première Page Web. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <!-- Fenêtre modale pour l'exportation textuelle -->
+    <div id="export-text-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Exporter les données textuelles</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4">
+                        Entrez un nom pour votre fichier et un thème. Il sera sauvegardé en tant que **.txt**.
+                    </p>
+                    <input type="text" id="export-text-filename" class="w-full p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Nom du fichier">
+                    <input type="text" id="export-text-theme" class="w-full p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mt-2" placeholder="Thème (ex: Recherche)">
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirm-export-text-button" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 transition-colors duration-300">
+                        Confirmer
+                    </button>
+                    <button id="cancel-export-text-button" class="mt-3 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-300">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fenêtre modale pour l'exportation du tableau -->
+    <div id="export-table-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Exporter le tableau</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4">
+                        Entrez un nom pour votre fichier et un thème. Il sera sauvegardé en tant que **.xls**.
+                    </p>
+                    <input type="text" id="export-table-filename" class="w-full p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" placeholder="Nom du fichier">
+                    <input type="text" id="export-table-theme" class="w-full p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mt-2" placeholder="Thème (ex: Finances)">
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirm-export-table-button" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 transition-colors duration-300">
+                        Confirmer
+                    </button>
+                    <button id="cancel-export-table-button" class="mt-3 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-300">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Récupération des éléments DOM
+        const newPromptNameInput = document.getElementById('new-prompt-name');
+        const newPromptTextarea = document.getElementById('new-prompt');
+        const savePromptButton = document.getElementById('save-prompt-button');
+        const promptListContainer = document.getElementById('prompt-list');
+        const refPromptTextarea = document.getElementById('ref-prompt');
+        const editButton = document.getElementById('edit-button');
+        const selectedPromptTitle = document.getElementById('selected-prompt-title');
+        const selectedAgentName = document.getElementById('selected-agent-name');
+        const aiAgentsTable = document.getElementById('ai-agents-table');
+        const newCategoryInput = document.getElementById('new-category-input');
+        const addCategoryButton = document.getElementById('add-category-button');
+        const promptDataTextarea = document.getElementById('prompt-data-text');
+        const promptDataTable = document.getElementById('prompt-data-table');
+        const exportTextButton = document.getElementById('export-text-button');
+        const exportTextModal = document.getElementById('export-text-modal');
+        const confirmExportTextButton = document.getElementById('confirm-export-text-button');
+        const cancelExportTextButton = document.getElementById('cancel-export-text-button');
+        const exportTextFilenameInput = document.getElementById('export-text-filename');
+        const exportTextThemeInput = document.getElementById('export-text-theme');
+        const exportTableButton = document.getElementById('export-table-button');
+        const exportTableModal = document.getElementById('export-table-modal');
+        const confirmExportTableButton = document.getElementById('confirm-export-table-button');
+        const cancelExportTableButton = document.getElementById('cancel-export-table-button');
+        const exportTableFilenameInput = document.getElementById('export-table-filename');
+        const exportTableThemeInput = document.getElementById('export-table-theme');
+
+        // Tableau pour stocker les prompts
+        let prompts = [
+            { id: '1', name: 'Prompt 1', content: 'Décrire un paysage fantastique.' },
+            { id: '2', name: 'Prompt 2', content: 'Rédiger un e-mail professionnel.' },
+            { id: '3', name: 'Prompt 3', content: 'Créer un poème sur la nature.' },
+            { id: '4', name: 'Prompt Parfait pour la Recherche', content: `Prompt Parfait pour la Recherche (T.C.R.E.I.)
+Tâche : Générer une analyse factuelle et rigoureuse sur le Thème donné, en respectant les Temps, Zone et Exclusions spécifiés. La réponse doit inclure une synthèse des faits clés, un tableau structuré des données vérifiables, et trois options de solutions distinctes (A/B/C) avec leurs avantages, inconvénients, risques et ressources. Le tout devra être exportable dans des formats adaptés.
+Contexte : L'objectif est de fournir des informations fiables et vérifiées, sans aucune spéculation ni invention. Chaque donnée doit être sourcée avec des liens directs et son niveau de certitude évalué. La méthode de recherche interne suit le framework A.P.P. (Analyse-Problème-Planification) pour une rigueur maximale.
+Rôle : Tu agis en tant que "[Name-AI]", un expert-chercheur rigoureux et factuel spécialisé dans le domaine de [fonction 1 du thème] et [fonction 2 du thème].
+Maîtrises : Tes compétences clés incluent :
+
+Méthode 1 : [Méthode/Outil/Technique liée au thème]
+Méthode 2 : [Méthode/Outil/Technique liée au thème]
+Méthode 3 : [Méthode/Outil/Technique liée au thème]
+Exemples : Pour une demande concernant "L'impact du télétravail sur la productivité en France entre 2020 et 2023", tu rechercherais des rapports d'organismes officiels (INSEE, Dares), des études scientifiques (articles de revues académiques), et des enquêtes d'organisations reconnues. Tu présenterais les pourcentages d'évolution de productivité cités par différentes sources, avec les dates de publication et les populations ciblées, puis tu proposerais des solutions pour optimiser le télétravail (A), ses limites (B) et des approches hybrides innovantes (C).
+Instructions :
+
+Récupérer les informations initiales de l'utilisateur : Thème, Temps, Zone, Exclusions, Ton.
+Définir le Persona : Basé sur le Thème, attribue deux fonctions d'expert-chercheur pertinentes et propose trois méthodes/outils/techniques clés spécifiques à ce domaine.
+Appliquer la méthodologie A.P.P. (interne) :
+Exploration et Définition du Problème : Clarifier la requête, reformuler la question, identifier les sous-problèmes et incertitudes.
+Planification et Recherche d'Informations : Lister les données manquantes, définir les objectifs de recherche. Utiliser les Gems "NewNew" pour l'actualité, "Fifty Fifty" pour les pourcentages/statistiques, et "Hall" pour les questions complexes. Prioriser les sources institutionnelles (.gouv, .org, .edu), médias établis, publications scientifiques, experts reconnus.
+Analyse et Croisement des données : Comparer et valider les informations d'au moins trois sources indépendantes et fiables. Évaluer crédibilité, fiabilité, actualité, objectivité. Détecter les incohérences et les biais. Si une information est incertaine, signaler explicitement : [CERTITUDE FAIBLE], "Information non vérifiable" ou "Source non confirmée". Ne jamais inventer. Utiliser https://images.google.com/ pour la vérification visuelle si pertinent.
+Synthèse et Production :
+Réponse Clé & Synthèse : Afficher en premier la réponse synthétique la plus pertinente, avec les chiffres et pourcentages en gras.
+Tableau des Faits : Présenter les données clés dans un tableau :
+| Fait / Donnée Clé | Source (avec lien HTTPS) | Date | Niveau de Certitude (Élevé/Moyen/Faible) |
+|---|---|---|---|
+Perspectives (A/B/C) : Proposer trois solutions ou angles d'analyse pour le thème :
+Option A : La proposition principale/directe.
+Option B : Une alternative/un contrepoint.
+Option C : Une approche innovante/originale.
+Chaque option doit détailler : Avantages, Inconvénients, Risques potentiels (juridiques, techniques, éthiques), Ressources nécessaires, Probabilité de réussite/fiabilité estimée.
+Sources : Lister toutes les sources utilisées avec leurs liens HTTPS.
+Ton et Modularité : Adapter le ton (A: académique, B: inspirant, C: concis, D: pédagogique - par défaut concis). Permettre la modularité de la production (bref/détaillé/exhaustif).
+Interaction Dynamique : Être prêt à répondre aux commandes approfondir, similaire, contraire, noter, cocher.
+Export/Import : Les données textuelles et les tableaux de faits doivent être exportables.
+Le Thème que tu vas me donner remplira dynamiquement les sections [Name-AI], [fonction 1], [fonction 2] et [Méthodes/Outils/Techniques] dans ce prompt.`},
+        ];
+        let selectedPromptId = '4'; // Définit le "Prompt Parfait" comme sélectionné par défaut
+        let selectedAgentId = null;
+        let sortBy = null;
+        let sortDirection = 'asc';
+
+        // Catégories par défaut
+        let agentCategories = ['IA générale', 'Images', 'Audio', 'Vidéo', 'Code', 'APP'];
+
+        // Tableau pour stocker les agents AI
+        let aiAgents = [
+            { id: 'a1', name: 'ChatGPT (OpenAI)', category: 'IA générale', link: 'https://chatgpt.com/' },
+            { id: 'a2', name: 'Gemini (Google DeepMind)', category: 'IA générale', link: 'https://gemini.google.com/app?utm_source=gemini&utm_medium=referral&utm_campaign=gemini_deep_research_landing_page&redirect=home&hl=fr' },
+            { id: 'a3', name: 'Microsoft Copilot', category: 'IA générale', link: 'https://copilot.microsoft.com/' },
+            { id: 'a4', name: 'Midjourney', category: 'Images', link: 'https://www.midjourney.com/' },
+            { id: 'a5', name: 'Adobe Firefly', category: 'Images', link: 'https://firefly.adobe.com/' },
+            { id: 'a6', name: 'DALL-E (OpenAI)', category: 'Images', link: 'https://openai.com/dall-e/' },
+            { id: 'a7', name: 'Synthesia', category: 'Vidéo', link: 'https://www.synthesia.io/' },
+            { id: 'a8', name: 'Jasper AI', category: 'IA générale', link: 'https://www.jasper.ai/' },
+            { id: 'a9', name: 'Character.AI', category: 'IA générale', link: 'https://beta.character.ai/' },
+            { id: 'a10', name: 'Auto-GPT', category: 'APP', link: 'https://github.com/Torantulino/Auto-GPT' },
+            { id: 'a11', name: 'BabyAGI', category: 'APP', link: 'https://github.com/yoheinakajima/babyagi' },
+            { id: 'a12', name: 'Bard (maintenant intégré à Gemini)', category: 'IA générale', link: 'https://gemini.google.com/' },
+            { id: 'a13', name: 'GitHub Copilot', category: 'Code', link: 'https://github.com/features/copilot/' },
+            { id: 'a14', name: 'ElevenLabs', category: 'Audio', link: 'https://elevenlabs.io/' },
+            { id: 'a15', name: 'RunwayML', category: 'Vidéo', link: 'https://runwayml.com/' },
+        ];
+
+        // Exemple de données pour le tableau de données du prompt
+        let promptData = [
+            { nom: 'Population', valeur: '150 millions', lien: 'https://example.com/population' },
+            { nom: 'PIB par habitant', valeur: '50 000€', lien: 'https://example.com/pib' },
+        ];
+        
+        // Fonction de tri
+        function sortAIAgents(column) {
+            if (sortBy === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortBy = column;
+                sortDirection = 'asc';
+            }
+
+            aiAgents.sort((a, b) => {
+                const valA = a[column].toUpperCase();
+                const valB = b[column].toUpperCase();
+                if (valA < valB) {
+                    return sortDirection === 'asc' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return sortDirection === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+            renderAIAgents();
+        }
+
+        // Fonction pour rendre le tableau des agents AI
+        function renderAIAgents() {
+            aiAgentsTable.innerHTML = ''; // Vide le contenu actuel
+            aiAgents.forEach(agent => {
+                const row = document.createElement('tr');
+                row.className = `bg-white border-b hover:bg-gray-50 cursor-pointer ${selectedAgentId === agent.id ? 'bg-gray-200' : ''}`;
+                row.dataset.agentId = agent.id;
+                row.addEventListener('click', () => {
+                    selectAgent(agent.id);
+                });
+
+                // Colonne Nom
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-4 py-4 font-medium text-gray-900 whitespace-nowrap';
+                nameCell.textContent = agent.name;
+                row.appendChild(nameCell);
+
+                // Colonne Catégorie
+                const categoryCell = document.createElement('td');
+                categoryCell.className = 'px-4 py-4';
+                const categorySelect = document.createElement('select');
+                categorySelect.className = 'bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5';
+                agentCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    if (cat === agent.category) {
+                        option.selected = true;
+                    }
+                    categorySelect.appendChild(option);
+                });
+                categorySelect.addEventListener('change', (e) => {
+                    agent.category = e.target.value;
+                });
+                categoryCell.appendChild(categorySelect);
+                row.appendChild(categoryCell);
+                
+                // Colonne Lien
+                const linkCell = document.createElement('td');
+                linkCell.className = 'px-4 py-4';
+                linkCell.innerHTML = `<a href="${agent.link}" target="_blank" class="text-blue-500 hover:underline">Lien</a>`;
+                row.appendChild(linkCell);
+
+                // Colonne Supprimer
+                const deleteCell = document.createElement('td');
+                deleteCell.className = 'px-4 py-4 text-center';
+                deleteCell.innerHTML = `
+                    <button class="delete-agent-button text-red-500 hover:text-red-700 transition-colors duration-200" data-agent-id="${agent.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                deleteCell.querySelector('.delete-agent-button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAIAgent(agent.id);
+                });
+                row.appendChild(deleteCell);
+
+                aiAgentsTable.appendChild(row);
+            });
+        }
+        
+        // Fonction pour ajouter une nouvelle catégorie
+        addCategoryButton.addEventListener('click', () => {
+            const newCategory = newCategoryInput.value.trim();
+            if (newCategory && !agentCategories.includes(newCategory)) {
+                agentCategories.push(newCategory);
+                newCategoryInput.value = '';
+                renderAIAgents(); // Met à jour le tableau pour inclure la nouvelle option
+            }
+        });
+
+        // Fonction pour supprimer un agent AI
+        function deleteAIAgent(id) {
+            aiAgents = aiAgents.filter(a => a.id !== id);
+            if (selectedAgentId === id) {
+                selectedAgentId = null;
+                updateHeader();
+            }
+            renderAIAgents();
+        }
+
+        // Fonction pour sélectionner un agent AI
+        function selectAgent(id) {
+            selectedAgentId = id;
+            updateHeader();
+            renderAIAgents();
+        }
+
+        // Met à jour l'en-tête avec les noms du prompt et de l'agent
+        function updateHeader() {
+            const selectedPrompt = prompts.find(p => p.id === selectedPromptId);
+            const selectedAgent = aiAgents.find(a => a.id === selectedAgentId);
+
+            let promptName = selectedPrompt ? selectedPrompt.name : 'Aucun prompt sélectionné';
+            let agentName = selectedAgent ? ` / ${selectedAgent.name}` : '';
+
+            selectedPromptTitle.textContent = promptName;
+            selectedAgentName.textContent = agentName;
+        }
+
+        // Fonction pour rendre la liste des prompts
+        function renderPrompts() {
+            promptListContainer.innerHTML = '';
+            prompts.forEach(prompt => {
+                const promptDiv = document.createElement('div');
+                promptDiv.id = `prompt-${prompt.id}`;
+                promptDiv.className = 'prompt-list-item flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200 cursor-pointer transition-colors duration-200';
+                if (selectedPromptId === prompt.id) {
+                    promptDiv.classList.add('selected');
+                }
+
+                const promptText = document.createElement('p');
+                promptText.className = 'font-medium text-gray-700 flex-grow';
+                promptText.textContent = prompt.name;
+                promptText.addEventListener('click', () => {
+                    selectPrompt(prompt.id);
+                });
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'ml-4 text-red-500 hover:text-red-700 transition-colors duration-200';
+                deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                                        </svg>`;
+                deleteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deletePrompt(prompt.id);
+                });
+
+                promptDiv.appendChild(promptText);
+                promptDiv.appendChild(deleteButton);
+                promptListContainer.appendChild(promptDiv);
+            });
+        }
+
+        // Fonction pour sélectionner un prompt et afficher son contenu
+        function selectPrompt(id) {
+            const selected = prompts.find(p => p.id === id);
+            if (selected) {
+                selectedPromptId = id;
+                refPromptTextarea.value = selected.content;
+                renderPrompts();
+            }
+            updateHeader();
+        }
+
+        // Fonction pour ajouter un nouveau prompt
+        function addPrompt() {
+            const newPromptContent = newPromptTextarea.value.trim();
+            const newPromptName = newPromptNameInput.value.trim();
+
+            if (newPromptContent) {
+                const newPrompt = {
+                    id: crypto.randomUUID(),
+                    name: newPromptName || `Prompt ${prompts.length + 1}`,
+                    content: newPromptContent,
+                };
+                prompts.unshift(newPrompt);
+                newPromptTextarea.value = '';
+                newPromptNameInput.value = '';
+                renderPrompts();
+            }
+        }
+
+        // Fonction pour supprimer un prompt
+        function deletePrompt(id) {
+            prompts = prompts.filter(p => p.id !== id);
+            if (selectedPromptId === id) {
+                selectedPromptId = null;
+                refPromptTextarea.value = '';
+            }
+            renderPrompts();
+            updateHeader();
+        }
+        
+        // Logique pour le "Prompt REF" (bouton Modifier)
+        editButton.addEventListener('click', () => {
+            const isDisabled = refPromptTextarea.disabled;
+            
+            refPromptTextarea.disabled = !isDisabled;
+            
+            if (isDisabled) {
+                editButton.textContent = 'Enregistrer';
+                editButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                editButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                refPromptTextarea.focus();
+            } else {
+                editButton.textContent = 'Modifier';
+                editButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                editButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                
+                if (selectedPromptId) {
+                    const selected = prompts.find(p => p.id === selectedPromptId);
+                    if (selected) {
+                        selected.content = refPromptTextarea.value;
+                    }
+                }
+            }
+        });
+        
+        // Fonction pour rendre le tableau de données du prompt
+        function renderPromptData() {
+            promptDataTable.innerHTML = ''; // Vider le contenu actuel
+            promptData.forEach(data => {
+                const row = document.createElement('tr');
+                row.className = 'bg-white border-b hover:bg-gray-50';
+
+                // Colonne Nom
+                const nomCell = document.createElement('td');
+                nomCell.className = 'px-4 py-4 font-medium text-gray-900 whitespace-nowrap';
+                nomCell.textContent = data.nom;
+                row.appendChild(nomCell);
+
+                // Colonne Valeur
+                const valeurCell = document.createElement('td');
+                valeurCell.className = 'px-4 py-4';
+                valeurCell.textContent = data.valeur;
+                row.appendChild(valeurCell);
+
+                // Colonne Lien
+                const linkCell = document.createElement('td');
+                linkCell.className = 'px-4 py-4';
+                linkCell.innerHTML = `<a href="${data.lien}" target="_blank" class="text-blue-500 hover:underline">Lien</a>`;
+                row.appendChild(linkCell);
+
+                promptDataTable.appendChild(row);
+            });
+        }
+        
+        // Logique d'exportation du fichier texte
+        exportTextButton.addEventListener('click', () => {
+            exportTextModal.classList.remove('hidden');
+            exportTextFilenameInput.focus();
+        });
+
+        cancelExportTextButton.addEventListener('click', () => {
+            exportTextModal.classList.add('hidden');
+        });
+
+        confirmExportTextButton.addEventListener('click', () => {
+            let filename = exportTextFilenameInput.value.trim();
+            let theme = exportTextThemeInput.value.trim();
+            let textContent = promptDataTextarea.value;
+            
+            if (textContent) {
+                if (!filename) {
+                    filename = 'export_text';
+                }
+                if (theme) {
+                    textContent = `#${theme.replace(/\s/g, '_')}#\n\n` + textContent;
+                }
+                const now = new Date();
+                const dateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+                const finalFilename = `${filename}_${dateString}.txt`;
+                
+                const blob = new Blob([textContent], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = finalFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+            exportTextModal.classList.add('hidden');
+            exportTextFilenameInput.value = '';
+            exportTextThemeInput.value = '';
+        });
+        
+        // Logique d'exportation du tableau
+        exportTableButton.addEventListener('click', () => {
+            exportTableModal.classList.remove('hidden');
+            exportTableFilenameInput.focus();
+        });
+
+        cancelExportTableButton.addEventListener('click', () => {
+            exportTableModal.classList.add('hidden');
+        });
+        
+        confirmExportTableButton.addEventListener('click', () => {
+            let filename = exportTableFilenameInput.value.trim();
+            let theme = exportTableThemeInput.value.trim();
+            
+            if (!filename) {
+                filename = 'export_tableau';
+            }
+            
+            const now = new Date();
+            const dateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+            const finalFilename = `${filename}_${dateString}.xls`;
+            
+            // Crée une chaîne de caractères au format CSV pour le fichier XLS
+            const tableHeaders = ['Nom', 'Valeur', 'Lien'];
+            let csvContent = tableHeaders.join('\t');
+            
+            if (theme) {
+                csvContent = `#${theme.replace(/\s/g, '_')}#\n` + csvContent;
+            }
+            
+            csvContent += '\n' + promptData.map(row => `${row.nom}\t${row.valeur}\t${row.lien}`).join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = finalFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            exportTableModal.classList.add('hidden');
+            exportTableFilenameInput.value = '';
+            exportTableThemeInput.value = '';
+        });
+
+        // 1. Logique pour le "Nouveau prompt" (hauteur dynamique)
+        newPromptTextarea.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = `${e.target.scrollHeight}px`;
+        });
+
+        // Événement pour le bouton "Sauvegarder"
+        savePromptButton.addEventListener('click', addPrompt);
+
+        // Événements de tri
+        document.querySelectorAll('th[data-sort-by]').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const column = e.target.dataset.sortBy;
+                sortAIAgents(column);
+            });
+        });
+
+        // Rendre la liste initiale au chargement de la page et définir l'agent par défaut
+        renderPrompts();
+        selectedAgentId = 'a2'; // Définit Gemini comme l'agent par défaut
+        renderAIAgents();
+        renderPromptData();
+        updateHeader();
+    </script>
+</body>
+</html>

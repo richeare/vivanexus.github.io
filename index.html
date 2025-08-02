@@ -1,0 +1,587 @@
+<script type="text/javascript">
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+    function filledCell(cell) {
+      return cell !== '' && cell != null;
+    }
+    function loadFileData(filename) {
+    if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+        try {
+            var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+            var firstSheetName = workbook.SheetNames[0];
+            var worksheet = workbook.Sheets[firstSheetName];
+
+            // Convert sheet to JSON to filter blank rows
+            var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+            // Filter out blank rows (rows where all cells are empty, null, or undefined)
+            var filteredData = jsonData.filter(row => row.some(filledCell));
+
+            // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+            var headerRowIndex = filteredData.findIndex((row, index) =>
+              row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+            );
+            // Fallback
+            if (headerRowIndex === -1 || headerRowIndex > 25) {
+              headerRowIndex = 0;
+            }
+
+            // Convert filtered JSON back to CSV
+            var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+            csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+            return csv;
+        } catch (e) {
+            console.error(e);
+            return "";
+        }
+    }
+    return gk_fileData[filename] || "";
+    }
+    </script><!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search & find</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+<header class="bg-blue-600 text-white p-4">
+    <h1 class="text-2xl font-bold">Search & find</h1>
+    <nav class="mt-2">
+        <a href="index.html" class="mr-4 hover:underline">Accueil</a>
+        <a href="data.html" class="mr-4 hover:underline">Données</a>
+        <a href="export.html" class="hover:underline">Export</a>
+    </nav>
+</header>
+
+<main class="container mx-auto p-4">
+    <!-- Zone de recherche avec liseré -->
+    <div class="border-2 border-gray-300 rounded-lg shadow-lg bg-white p-6 mb-6">
+        <!-- Zones Question - Contexte et Prompt -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- Zone Question - Contexte (gauche) -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Question - Contexte</label>
+                <textarea id="context" class="w-full p-2 border border-gray-300 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez le contexte ici"></textarea>
+                <div id="contextDropdown" class="mt-2 w-full bg-white border border-gray-300 rounded shadow-lg">
+                    <div class="p-4">
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pays</label>
+                            <input type="text" id="contextCountry" class="w-full p-2 border border-gray-300 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Sélectionnez un ou plusieurs pays" readonly>
+                            <button id="countryToggle" class="absolute right-2 top-8 p-1 bg-gray-200 rounded hover:bg-gray-300" title="Sélectionner des pays">▼</button>
+                            <div id="countryDropdown" class="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg hidden max-h-60 overflow-y-auto">
+                                <div id="countryList" class="p-2"></div>
+                            </div>
+                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Région / Ville</label>
+                        <input type="text" id="contextRegion" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Entrez une région ou ville">
+                    </div>
+                </div>
+                <!-- Persona -->
+                <div class="mt-4 relative w-1/2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Persona</label>
+                    <button id="personaButton" class="bg-gray-200 text-gray-700 p-2 rounded w-full text-left hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500" title="Sélectionner des personas">Sélectionner des personas</button>
+                    <div id="personaDropdown" class="absolute z-10 mt-2 w-full bg-white border border-gray-300 rounded shadow-lg hidden">
+                        <div class="p-4">
+                            <textarea id="customPersona" class="w-full p-2 border border-gray-300 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez un persona personnalisé"></textarea>
+                            <div id="personaList" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Compétences -->
+                <div class="mt-4 relative w-1/2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Compétences</label>
+                    <button id="skillsButton" class="bg-gray-200 text-gray-700 p-2 rounded w-full text-left hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500" title="Sélectionner des compétences">Sélectionner des compétences</button>
+                    <div id="skillsDropdown" class="absolute z-10 mt-2 w-full bg-white border border-gray-300 rounded shadow-lg hidden">
+                        <div class="p-4">
+                            <textarea id="customSkill" class="w-full p-2 border border-gray-300 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez une nouvelle compétence"></textarea>
+                            <div id="skillsList" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Zone Prompt (droite) -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Prompt</label>
+                <textarea id="prompt" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez votre prompt ici"></textarea>
+                <div id="promptDropdown" class="absolute z-10 mt-2 w-full bg-white border border-gray-300 rounded shadow-lg hidden">
+                    <textarea id="promptFull" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-500" rows="6" placeholder="Suite du prompt"></textarea>
+                </div>
+                <!-- Période -->
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="relative w-1/2">
+                        <label class="block text-sm font-medium text-gray-700">Période</label>
+                        <input type="text" id="dateRange" class="mt-1 p-2 border border-gray-300 rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Sélectionnez la période (2010-2025)" title="Entrez la période : 2010-2025">
+                    </div>
+                    <button id="todayButton" class="mt-6 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Today</button>
+                </div>
+                <!-- Cible -->
+                <div class="mt-4 relative w-1/2">
+                    <label class="block text-sm font-medium text-gray-700">Cible</label>
+                    <input type="text" id="target" class="mt-1 p-2 border border-gray-300 rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-500" placeholder="Ex. : adultes universitaires, enfants" title="Indiquez votre public : famille, étudiants, etc.">
+                </div>
+                <!-- Contraintes/Restrictions -->
+                <div class="mt-4 relative w-full">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Contraintes/Restrictions</label>
+                    <button id="constraintsButton" class="bg-gray-200 text-gray-700 p-2 rounded w-full text-left hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500" title="Cliquez pour ouvrir les contraintes">Sélectionner les contraintes</button>
+                    <div id="constraintsDropdown" class="absolute z-10 mt-2 w-full bg-white border border-gray-300 rounded shadow-lg hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+                            <!-- Colonne Rouge -->
+                            <div class="bg-red-100 p-4 rounded">
+                                <h3 class="text-lg font-medium text-red-700">Première (Impossible)</h3>
+                                <textarea id="redConstraints" class="w-full p-2 border border-gray-300 rounded mt-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez vos contraintes impossibles"></textarea>
+                                <div id="redConstraintsList" class="mt-2"></div>
+                            </div>
+                            <!-- Colonne Orange -->
+                            <div class="bg-orange-100 p-4 rounded">
+                                <h3 class="text-lg font-medium text-orange-700">Deuxième (Plausible mais éloigné)</h3>
+                                <textarea id="orangeConstraints" class="w-full p-2 border border-gray-300 rounded mt-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez vos contraintes plausibles"></textarea>
+                                <div id="orangeConstraintsList" class="mt-2"></div>
+                            </div>
+                            <!-- Colonne Jaune -->
+                            <div class="bg-yellow-100 p-4 rounded">
+                                <h3 class="text-lg font-medium text-yellow-700">Troisième (Acceptable mais non préféré)</h3>
+                                <textarea id="yellowConstraints" class="w-full p-2 border border-gray-300 rounded mt-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3" placeholder="Entrez vos contraintes acceptables"></textarea>
+                                <div id="yellowConstraintsList" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="mb-6">
+            <div class="flex items-center gap-4">
+                <!-- Ton -->
+                <div class="relative w-1/2">
+                    <label class="block text-sm font-medium text-gray-700">Ton</label>
+                    <select id="tone" class="mt-1 p-2 border border-gray-300 rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        <option value="formal">Formel</option>
+                        <option value="creative">Créatif</option>
+                        <option value="pedagogical">Pédagogique</option>
+                        <option value="direct">Direct</option>
+                    </select>
+                </div>
+                <!-- Bouton Rechercher -->
+                <button id="search" class="mt-6 bg-blue-600 text-white p-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-500">Rechercher</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Zone des résultats -->
+    <section id="results" class="hidden">
+        <h2 class="text-xl font-semibold mb-2 text-gray-800">Résultats</h2>
+        <div id="summary" class="bg-white p-4 rounded shadow mb-4 border border-gray-200">
+            <h3 class="text-lg font-medium text-gray-700">Résumé</h3>
+            <p id="summaryText" class="text-gray-600">En 2024, environ 93,3 millions de personnes (21 % de la population de l'UE) étaient à risque de pauvreté ou d'exclusion sociale, une légère baisse par rapport à 94,6 millions en 2023.</p>
+        </div>
+    </section>
+</main>
+
+<script>
+    // Liste des pays par ordre alphabétique
+    const countries = [
+        "Afghanistan", "Albanie", "Algérie", "Andorre", "Angola", "Antigua-et-Barbuda", "Argentine", "Arménie", "Australie", "Autriche",
+        "Azerbaïdjan", "Bahamas", "Bahreïn", "Bangladesh", "Barbade", "Belgique", "Belize", "Bénin", "Bhoutan", "Bolivie",
+        "Bosnie-Herzégovine", "Botswana", "Brésil", "Brunei", "Bulgarie", "Burkina Faso", "Burundi", "Cambodge", "Cameroun", "Canada",
+        "Cap-Vert", "Centrafrique", "Chili", "Chine", "Chypre", "Colombie", "Comores", "Congo", "Costa Rica", "Côte d'Ivoire",
+        "Croatie", "Cuba", "Danemark", "Djibouti", "Dominique", "Égypte", "Émirats arabes unis", "Équateur", "Érythrée", "Espagne",
+        "Estonie", "Eswatini", "Éthiopie", "Fidji", "Finlande", "France", "Gabon", "Gambie", "Géorgie", "Ghana",
+        "Grèce", "Grenade", "Guatemala", "Guinée", "Guinée équatoriale", "Guinée-Bissau", "Guyana", "Haïti", "Honduras", "Hongrie",
+        "Inde", "Indonésie", "Irak", "Iran", "Irlande", "Islande", "Israël", "Italie", "Jamaïque", "Japon",
+        "Jordanie", "Kazakhstan", "Kenya", "Kirghizistan", "Kiribati", "Koweït", "Laos", "Lesotho", "Lettonie", "Liban",
+        "Liberia", "Libye", "Liechtenstein", "Lituanie", "Luxembourg", "Macédoine du Nord", "Madagascar", "Malaisie", "Malawi", "Maldives",
+        "Mali", "Malte", "Maroc", "Marshall", "Maurice", "Mauritanie", "Mexique", "Micronésie", "Moldavie", "Monaco",
+        "Mongolie", "Monténégro", "Mozambique", "Myanmar", "Namibie", "Nauru", "Népal", "Nicaragua", "Niger", "Nigeria",
+        "Norvège", "Nouvelle-Zélande", "Oman", "Ouganda", "Ouzbékistan", "Pakistan", "Palaos", "Panama", "Papouasie-Nouvelle-Guinée", "Paraguay",
+        "Pays-Bas", "Pérou", "Philippines", "Pologne", "Portugal", "Qatar", "République dominicaine", "République tchèque", "Roumanie", "Royaume-Uni",
+        "Russie", "Rwanda", "Saint-Christophe-et-Niévès", "Sainte-Lucie", "Saint-Vincent-et-les-Grenadines", "Salomon", "Salvador", "Samoa", "Sao Tomé-et-Principe", "Sénégal",
+        "Serbie", "Seychelles", "Sierra Leone", "Singapour", "Slovaquie", "Slovénie", "Somalie", "Soudan", "Soudan du Sud", "Sri Lanka",
+        "Suède", "Suisse", "Suriname", "Syrie", "Tadjikistan", "Tanzanie", "Tchad", "Thaïlande", "Timor oriental", "Togo",
+        "Tonga", "Trinité-et-Tobago", "Tunisie", "Turkménistan", "Turquie", "Tuvalu", "Ukraine", "Uruguay", "Vanuatu", "Vatican",
+        "Venezuela", "Viêt Nam", "Yémen", "Zambie", "Zimbabwe"
+    ];
+
+    // Initialisation du calendrier
+    flatpickr("#dateRange", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        minDate: "2010-01-01",
+        maxDate: "2025-12-31"
+    });
+
+    // Gestion du bouton Today
+    const todayButton = document.getElementById("todayButton");
+    const dateRangeInput = document.getElementById("dateRange");
+    let isTodayActive = false;
+
+    todayButton.addEventListener("click", () => {
+        isTodayActive = !isTodayActive;
+        if (isTodayActive) {
+            const today = "2025-08-02"; // Date du jour
+            dateRangeInput.value = today;
+            todayButton.classList.add("bg-blue-500", "text-white");
+            todayButton.classList.remove("bg-gray-200", "text-gray-700");
+        } else {
+            dateRangeInput.value = "";
+            todayButton.classList.remove("bg-blue-500", "text-white");
+            todayButton.classList.add("bg-gray-200", "text-gray-700");
+        }
+    });
+
+    // Gestion du champ Persona
+    const personaButton = document.getElementById("personaButton");
+    const personaDropdown = document.getElementById("personaDropdown");
+    const customPersonaInput = document.getElementById("customPersona");
+    const personaList = document.getElementById("personaList");
+    let customPersonas = [];
+    let selectedPersonas = [];
+    const defaultPersonas = [
+        "DataEur (Analyste-statisticien)",
+        "SocioImpact (Sociologue)",
+        "PolicyPro (Spécialiste politiques publiques)",
+        "ONGLead (Responsable ONG)"
+    ];
+
+    personaButton.addEventListener("click", () => {
+        personaDropdown.classList.toggle("hidden");
+    });
+
+    customPersonaInput.addEventListener("input", () => {
+        const personaText = customPersonaInput.value.trim();
+        if (personaText && !customPersonas.includes(personaText)) {
+            customPersonas.push(personaText);
+            updatePersonaList();
+            customPersonaInput.value = ""; // Réinitialiser le champ après ajout
+        }
+    });
+
+    function updatePersonaList() {
+        personaList.innerHTML = "";
+        customPersonas.forEach(persona => {
+            const button = document.createElement("button");
+            button.className = `mt-1 px-2 py-1 text-sm rounded border border-gray-500 text-gray-700 hover:bg-gray-200 flex items-center justify-between w-full`;
+            button.innerHTML = `
+                <span>${persona}</span>
+                <span class="delete-persona text-red-500 hover:text-red-700 ml-2" data-persona="${persona}">🗑️</span>
+            `;
+            button.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("delete-persona")) {
+                    togglePersona(button, persona);
+                }
+            });
+            personaList.appendChild(button);
+        });
+
+        defaultPersonas.forEach(persona => {
+            const button = document.createElement("button");
+            button.className = `mt-1 px-2 py-1 text-sm rounded border border-gray-500 text-gray-700 hover:bg-gray-200 flex items-center justify-between w-full`;
+            button.innerHTML = `
+                <span>${persona}</span>
+                <span class="delete-persona text-red-500 hover:text-red-700 ml-2" data-persona="${persona}">🗑️</span>
+            `;
+            button.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("delete-persona")) {
+                    togglePersona(button, persona);
+                }
+            });
+            personaList.appendChild(button);
+        });
+
+        personaList.querySelectorAll(".delete-persona").forEach(button => {
+            button.addEventListener("click", (e) => {
+                const persona = e.target.dataset.persona;
+                customPersonas = customPersonas.filter(p => p !== persona);
+                defaultPersonas = defaultPersonas.filter(p => p !== persona);
+                selectedPersonas = selectedPersonas.filter(p => p !== persona);
+                updatePersonaList();
+                updatePersonaButton();
+            });
+        });
+
+        updatePersonaButton();
+    }
+
+    function togglePersona(button, persona) {
+        button.classList.toggle("bg-gray-300");
+        if (button.classList.contains("bg-gray-300")) {
+            selectedPersonas.push(persona);
+        } else {
+            selectedPersonas = selectedPersonas.filter(p => p !== persona);
+        }
+        updatePersonaButton();
+    }
+
+    function updatePersonaButton() {
+        const personaText = selectedPersonas.length > 0 
+            ? `Personas sélectionnés : ${selectedPersonas.join(", ")}`
+            : "Sélectionner des personas";
+        personaButton.textContent = personaText;
+    }
+
+    // Gestion des compétences
+    const skillsButton = document.getElementById("skillsButton");
+    const skillsDropdown = document.getElementById("skillsDropdown");
+    const customSkillInput = document.getElementById("customSkill");
+    const skillsList = document.getElementById("skillsList");
+    let customSkills = [];
+    let selectedSkills = [];
+    const defaultSkills = ["Analyse de données", "Recherche qualitative", "Rédaction de rapports", "Gestion de projet"];
+
+    skillsButton.addEventListener("click", () => {
+        skillsDropdown.classList.toggle("hidden");
+    });
+
+    customSkillInput.addEventListener("input", () => {
+        const skillText = customSkillInput.value.trim();
+        if (skillText && !customSkills.includes(skillText)) {
+            customSkills.push(skillText);
+            updateSkillsList();
+            customSkillInput.value = ""; // Réinitialiser le champ après ajout
+        }
+    });
+
+    function updateSkillsList() {
+        skillsList.innerHTML = "";
+        customSkills.forEach(skill => {
+            const button = document.createElement("button");
+            button.className = `mt-1 px-2 py-1 text-sm rounded border border-gray-500 text-gray-700 hover:bg-gray-200 flex items-center justify-between w-full`;
+            button.innerHTML = `
+                <span>${skill}</span>
+                <span class="delete-skill text-red-500 hover:text-red-700 ml-2" data-skill="${skill}">🗑️</span>
+            `;
+            button.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("delete-skill")) {
+                    toggleSkill(button, skill);
+                }
+            });
+            skillsList.appendChild(button);
+        });
+
+        defaultSkills.forEach(skill => {
+            const button = document.createElement("button");
+            button.className = `mt-1 px-2 py-1 text-sm rounded border border-gray-500 text-gray-700 hover:bg-gray-200 flex items-center justify-between w-full`;
+            button.innerHTML = `
+                <span>${skill}</span>
+                <span class="delete-skill text-red-500 hover:text-red-700 ml-2" data-skill="${skill}">🗑️</span>
+            `;
+            button.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("delete-skill")) {
+                    toggleSkill(button, skill);
+                }
+            });
+            skillsList.appendChild(button);
+        });
+
+        skillsList.querySelectorAll(".delete-skill").forEach(button => {
+            button.addEventListener("click", (e) => {
+                const skill = e.target.dataset.skill;
+                customSkills = customSkills.filter(s => s !== skill);
+                defaultSkills = defaultSkills.filter(s => s !== skill);
+                selectedSkills = selectedSkills.filter(s => s !== skill);
+                updateSkillsList();
+                updateSkillsButton();
+            });
+        });
+
+        updateSkillsButton();
+    }
+
+    function toggleSkill(button, skill) {
+        button.classList.toggle("bg-gray-300");
+        if (button.classList.contains("bg-gray-300")) {
+            selectedSkills.push(skill);
+        } else {
+            selectedSkills = selectedSkills.filter(s => s !== skill);
+        }
+        updateSkillsButton();
+    }
+
+    function updateSkillsButton() {
+        const skillsText = selectedSkills.length > 0 
+            ? `Compétences sélectionnées : ${selectedSkills.join(", ")}`
+            : "Sélectionner des compétences";
+        skillsButton.textContent = skillsText;
+    }
+
+    // Gestion des fenêtres déroulantes
+    const promptDropdown = document.getElementById("promptDropdown");
+    const countryToggle = document.getElementById("countryToggle");
+    const countryDropdown = document.getElementById("countryDropdown");
+    const countryList = document.getElementById("countryList");
+    const contextCountry = document.getElementById("contextCountry");
+
+    // Stocker les pays sélectionnés
+    let selectedCountries = [];
+
+    // Remplir la liste des pays
+    countries.forEach(country => {
+        const button = document.createElement("button");
+        button.className = "block w-full text-left px-2 py-1 text-sm hover:bg-gray-200";
+        button.textContent = country;
+        button.addEventListener("click", () => {
+            if (selectedCountries.includes(country)) {
+                selectedCountries = selectedCountries.filter(c => c !== country);
+                button.classList.remove("bg-gray-300");
+            } else {
+                selectedCountries.push(country);
+                button.classList.add("bg-gray-300");
+            }
+            contextCountry.value = selectedCountries.join(", ");
+        });
+        countryList.appendChild(button);
+    });
+
+    countryToggle.addEventListener("click", () => {
+        countryDropdown.classList.toggle("hidden");
+    });
+
+    // Fermer les fenêtres déroulantes si clic en dehors
+    document.addEventListener("click", (event) => {
+        if (!promptDropdown.contains(event.target)) {
+            promptDropdown.classList.add("hidden");
+        }
+        if (!countryToggle.contains(event.target) && !countryDropdown.contains(event.target)) {
+            countryDropdown.classList.add("hidden");
+        }
+        if (!personaButton.contains(event.target) && !personaDropdown.contains(event.target)) {
+            personaDropdown.classList.add("hidden");
+        }
+        if (!skillsButton.contains(event.target) && !skillsDropdown.contains(event.target)) {
+            skillsDropdown.classList.add("hidden");
+        }
+        if (!constraintsButton.contains(event.target) && !constraintsDropdown.contains(event.target)) {
+            constraintsDropdown.classList.add("hidden");
+        }
+    });
+
+    // Gestion des contraintes
+    let selectedConstraints = [];
+    const defaultConstraints = {
+        red: ["Allergie alimentaire", "Vertige", "Camping"],
+        orange: ["Végétarien", "Budget limité", "Transport public uniquement"],
+        yellow: ["Sources en anglais", "Données agrégées", "Hébergement partagé"]
+    };
+    let userConstraints = { red: [], orange: [], yellow: [] };
+
+    function addConstraint(textareaId, listId, color, category) {
+        const textarea = document.getElementById(textareaId);
+        const list = document.getElementById(listId);
+
+        textarea.addEventListener("input", () => {
+            const userConstraintsList = textarea.value.split("\n").filter(c => c.trim());
+            userConstraints[category] = userConstraintsList;
+            updateConstraintList(listId, color, category);
+        });
+
+        updateConstraintList(listId, color, category);
+    }
+
+    function updateConstraintList(listId, color, category) {
+        const list = document.getElementById(listId);
+        list.innerHTML = "";
+
+        // Ajouter les contraintes saisies par l'utilisateur
+        userConstraints[category].forEach(constraint => {
+            const button = document.createElement("button");
+            button.className = `mt-1 px-2 py-1 text-sm rounded border ${color} hover:bg-gray-200 flex items-center justify-between w-full`;
+            button.innerHTML = `
+                <span>${constraint}</span>
+                <span class="delete-constraint text-red-500 hover:text-red-700 ml-2" data-constraint="${constraint}" data-category="${category}">🗑️</span>
+            `;
+            button.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("delete-constraint")) {
+                    toggleConstraint(button, constraint, category);
+                }
+            });
+            list.appendChild(button);
+        });
+
+        // Ajouter les contraintes par défaut
+        defaultConstraints[category].forEach(constraint => {
+            const button = document.createElement("button");
+            button.className = `mt-1 px-2 py-1 text-sm rounded border ${color} hover:bg-gray-200 flex items-center justify-between w-full`;
+            button.innerHTML = `
+                <span>${constraint}</span>
+                <span class="delete-constraint text-red-500 hover:text-red-700 ml-2" data-constraint="${constraint}" data-category="${category}">🗑️</span>
+            `;
+            button.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("delete-constraint")) {
+                    toggleConstraint(button, constraint, category);
+                }
+            });
+            list.appendChild(button);
+        });
+
+        // Gestion de la suppression des contraintes
+        list.querySelectorAll(".delete-constraint").forEach(button => {
+            button.addEventListener("click", (e) => {
+                const constraint = e.target.dataset.constraint;
+                const category = e.target.dataset.category;
+                userConstraints[category] = userConstraints[category].filter(c => c !== constraint);
+                defaultConstraints[category] = defaultConstraints[category].filter(c => c !== constraint);
+                selectedConstraints = selectedConstraints.filter(c => c.constraint !== constraint || c.category !== category);
+                updateConstraintList(listId, color, category);
+                updateConstraintsButton();
+            });
+        });
+    }
+
+    function toggleConstraint(button, constraint, category) {
+        button.classList.toggle("bg-gray-300");
+        if (button.classList.contains("bg-gray-300")) {
+            selectedConstraints.push({ constraint, category });
+        } else {
+            selectedConstraints = selectedConstraints.filter(c => c.constraint !== constraint || c.category !== category);
+        }
+        updateConstraintsButton();
+    }
+
+    function updateConstraintsButton() {
+        const constraintsText = selectedConstraints.length > 0 
+            ? `Contraintes sélectionnées : ${selectedConstraints.map(c => c.constraint).join(", ")}`
+            : "Sélectionner les contraintes";
+        document.getElementById("constraintsButton").textContent = constraintsText;
+    }
+
+    addConstraint("redConstraints", "redConstraintsList", "border-red-500 text-red-700", "red");
+    addConstraint("orangeConstraints", "orangeConstraintsList", "border-orange-500 text-orange-700", "orange");
+    addConstraint("yellowConstraints", "yellowConstraintsList", "border-yellow-500 text-yellow-700", "yellow");
+
+    // Gestion de la fenêtre déroulante des contraintes
+    const constraintsButton = document.getElementById("constraintsButton");
+    const constraintsDropdown = document.getElementById("constraintsDropdown");
+    constraintsButton.addEventListener("click", () => {
+        constraintsDropdown.classList.toggle("hidden");
+    });
+
+    // Fermer la fenêtre déroulante si clic en dehors
+    document.addEventListener("click", (event) => {
+        if (!constraintsButton.contains(event.target) && !constraintsDropdown.contains(event.target)) {
+            constraintsDropdown.classList.add("hidden");
+        }
+    });
+
+    // Gestion de la recherche
+    document.getElementById("search").addEventListener("click", () => {
+        document.getElementById("results").classList.remove("hidden");
+        console.log("Contraintes sélectionnées :", selectedConstraints);
+        console.log("Pays sélectionnés :", selectedCountries);
+        console.log("Région/Ville contexte :", document.getElementById("contextRegion").value);
+        console.log("Personas sélectionnés :", selectedPersonas);
+        console.log("Compétences sélectionnées :", selectedSkills);
+        console.log("Période sélectionnée :", isTodayActive ? "2025-08-02" : document.getElementById("dateRange").value);
+        // Logique de recherche à implémenter
+    });
+
+    // Initialiser la liste des personas et compétences
+    updatePersonaList();
+    updateSkillsList();
+</script>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Back-Office - Archives</title>
+    <!-- Inclut le framework CSS Tailwind pour un style rapide et réactif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inclut la police "Inter" pour une typographie moderne -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .file-list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+        .file-list-item:hover {
+            background-color: #f9fafb;
+        }
+        .sortable-header {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .sortable-header:hover {
+            color: #1d4ed8;
+        }
+        .active-link {
+            border-bottom: 2px solid white;
+            padding-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased flex flex-col min-h-screen">
+
+    <!-- Section d'en-tête -->
+    <header class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Search & find</h1>
+            <nav class="mt-2 md:mt-0">
+                <a href="index.html" class="mr-4 hover:underline">Recherche</a>
+                <a href="prompt.html" class="mr-4 hover:underline">Prompts</a>
+                <a href="back-office.html" class="hover:underline active-link">Back-office</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <!-- Section Coffre Fichiers -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 text-center">
+            <h2 class="text-3xl font-bold text-gray-700 mb-4">Coffre Fichiers</h2>
+            <button id="import-button" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-300">
+                Importer
+            </button>
+        </div>
+
+        <!-- Section Archives Résultat -->
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-700">Archives Résultat</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Zone d'archivage des fichiers texte de la page principale -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">Exports depuis la page principale (.txt)</h3>
+                <div class="flex font-semibold text-gray-700 p-2 border-b-2 border-gray-200">
+                    <span class="w-1/2 sortable-header" data-sort-by="filename" data-list-id="text-result-archives">Nom du fichier</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="theme" data-list-id="text-result-archives">Thème</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="date" data-list-id="text-result-archives">Date</span>
+                </div>
+                <div id="text-result-archives-list">
+                    <!-- Les archives textuelles dynamiques apparaîtront ici -->
+                </div>
+            </div>
+
+            <!-- Zone d'archivage des fichiers structurés de la page principale -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">Exports depuis la page principale (.xls)</h3>
+                <div class="flex font-semibold text-gray-700 p-2 border-b-2 border-gray-200">
+                    <span class="w-1/2 sortable-header" data-sort-by="filename" data-list-id="table-result-archives">Nom du fichier</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="theme" data-list-id="table-result-archives">Thème</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="date" data-list-id="table-result-archives">Date</span>
+                </div>
+                <div id="table-result-archives-list">
+                    <!-- Les archives de tableaux dynamiques apparaîtront ici -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Séparation visuelle -->
+        <div class="border-t-2 border-gray-200 my-8"></div>
+
+        <!-- Section Archives Data (existante) -->
+        <div class="text-center">
+            <h2 class="text-3xl font-bold text-gray-700 mb-6">Archives Data</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Zone d'archivage des fichiers texte -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">Archives des données textuelles (.txt)</h3>
+                <div class="flex font-semibold text-gray-700 p-2 border-b-2 border-gray-200">
+                    <span class="w-1/2 sortable-header" data-sort-by="filename" data-list-id="text-archives">Nom du fichier</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="theme" data-list-id="text-archives">Thème</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="date" data-list-id="text-archives">Date</span>
+                </div>
+                <div id="text-archives-list">
+                    <!-- Les archives textuelles dynamiques apparaîtront ici -->
+                </div>
+            </div>
+
+            <!-- Zone d'archivage des fichiers structurés -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">Archives des données structurées (.xls)</h3>
+                <div class="flex font-semibold text-gray-700 p-2 border-b-2 border-gray-200">
+                    <span class="w-1/2 sortable-header" data-sort-by="filename" data-list-id="table-archives">Nom du fichier</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="theme" data-list-id="table-archives">Thème</span>
+                    <span class="w-1/4 sortable-header" data-sort-by="date" data-list-id="table-archives">Date</span>
+                </div>
+                <div id="table-archives-list">
+                    <!-- Les archives de tableaux dynamiques apparaîtront ici -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="bg-gray-800 text-white py-6 mt-auto flex justify-center items-center">
+        <div class="container mx-auto px-4 text-center">
+            <button id="show-imported-files-button" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-300 mr-4">
+                Afficher le Coffre Fichiers
+            </button>
+            <p class="mt-2">&copy; 2024 Ma Première Page Web. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <!-- Fenêtre modale pour l'importation de fichiers -->
+    <div id="import-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Importer des fichiers</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4">
+                        Déposez ou sélectionnez des fichiers (.txt, .xls, .doc, .pdf) pour les archiver.
+                    </p>
+                    <div id="drop-area" class="border-2 border-dashed border-gray-400 rounded-lg p-6 text-gray-500 cursor-pointer hover:border-blue-500 transition-colors duration-300">
+                        Glissez-déposez ici ou <span class="text-blue-500 font-semibold">cliquez pour sélectionner</span>
+                        <input type="file" id="file-input" class="hidden" multiple accept=".txt,.doc,.docx,.xls,.xlsx,.pdf">
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-import-button" class="mt-3 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-300">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fenêtre modale pour le contenu du Coffre Fichiers -->
+    <div id="file-vault-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-10 mx-auto p-5 border w-4/5 md:w-3/5 lg:w-2/5 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Contenu du Coffre Fichiers</h3>
+                <div id="imported-files-list" class="space-y-4 text-left">
+                    <!-- Les fichiers importés apparaîtront ici dynamiquement -->
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-file-vault-button" class="mt-3 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-300">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone d'archivage invisible pour les fichiers importés -->
+    <div id="invisible-archive-container" class="hidden">
+        <!-- Les fichiers importés seront stockés ici -->
+    </div>
+
+    <script>
+        // Données d'exemple pour les archives de la page principale
+        const textResultArchives = [
+            { filename: 'resultat_texte_2024-07-30_08-10-00.txt', theme: 'Résultat', date: new Date('2024-07-30T08:10:00') },
+            { filename: 'analyse_statistiques_2024-07-29_17-25-00.txt', theme: 'Analyse', date: new Date('2024-07-29T17:25:00') },
+            { filename: 'resume_article_2024-07-31_11-40-00.txt', theme: 'Résumé', date: new Date('2024-07-31T11:40:00') },
+        ].sort((a, b) => b.date - a.date);
+
+        const tableResultArchives = [
+            { filename: 'rapport_graphique_2024-07-30_09-35-00.xls', theme: 'Graphique', date: new Date('2024-07-30T09:35:00') },
+            { filename: 'chiffres_clefs_2024-07-29_16-00-00.xls', theme: 'Finance', date: new Date('2024-07-29T16:00:00') },
+            { filename: 'tableau_comparatif_2024-07-31_10-20-00.xls', theme: 'Comparaison', date: new Date('2024-07-31T10:20:00') },
+        ].sort((a, b) => b.date - a.date);
+
+        // Données d'exemple pour les archives de la page de prompt
+        const textArchives = [
+            { filename: 'rapport_analyse_2024-07-28_10-30-00.txt', theme: 'Analyse', date: new Date('2024-07-28T10:30:00') },
+            { filename: 'recherche_marche_2024-07-29_14-15-00.txt', theme: 'Marketing', date: new Date('2024-07-29T14:15:00') },
+            { filename: 'notes_reunion_2024-07-27_09-00-00.txt', theme: 'Réunion', date: new Date('2024-07-27T09:00:00') },
+            { filename: 'ideas_projet_2024-07-30_16-45-00.txt', theme: 'Projet', date: new Date('2024-07-30T16:45:00') },
+        ].sort((a, b) => b.date - a.date);
+
+        const tableArchives = [
+            { filename: 'statistiques_ventes_2024-07-29_11-20-00.xls', theme: 'Ventes', date: new Date('2024-07-29T11:20:00') },
+            { filename: 'budget_annuel_2024-07-28_15-05-00.xls', theme: 'Finance', date: new Date('2024-07-28T15:05:00') },
+            { filename: 'donnees_clients_2024-07-30_12-55-00.xls', theme: 'Marketing', date: new Date('2024-07-30T12:55:00') },
+            { filename: 'inventaire_produits_2024-07-27_17-30-00.xls', theme: 'Logistique', date: new Date('2024-07-27T17:30:00') },
+        ].sort((a, b) => b.date - a.date);
+
+        // Nouvelles données pour les fichiers importés
+        let importedFiles = [];
+
+        let sortState = {
+            'text-result-archives': { by: 'date', direction: 'desc' },
+            'table-result-archives': { by: 'date', direction: 'desc' },
+            'text-archives': { by: 'date', direction: 'desc' },
+            'table-archives': { by: 'date', direction: 'desc' },
+        };
+
+        // Récupération des éléments pour la gestion des fichiers importés
+        const importButton = document.getElementById('import-button');
+        const importModal = document.getElementById('import-modal');
+        const closeImportButton = document.getElementById('close-import-button');
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const fileVaultModal = document.getElementById('file-vault-modal');
+        const showImportedFilesButton = document.getElementById('show-imported-files-button');
+        const closeFileVaultButton = document.getElementById('close-file-vault-button');
+        const importedFilesList = document.getElementById('imported-files-list');
+
+        importButton.addEventListener('click', () => {
+            importModal.classList.remove('hidden');
+        });
+
+        closeImportButton.addEventListener('click', () => {
+            importModal.classList.add('hidden');
+        });
+
+        showImportedFilesButton.addEventListener('click', () => {
+            renderImportedFiles();
+            fileVaultModal.classList.remove('hidden');
+        });
+
+        closeFileVaultButton.addEventListener('click', () => {
+            fileVaultModal.classList.add('hidden');
+        });
+
+        // Empêcher le comportement par défaut de glisser-déposer
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Gérer les événements de glisser-déposer
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('border-blue-500', 'bg-blue-50'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('border-blue-500', 'bg-blue-50'), false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files), false);
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            for (const file of files) {
+                // Créer un objet de fichier simple pour l'archivage
+                const newFile = {
+                    id: crypto.randomUUID(),
+                    filename: file.name,
+                    theme: 'Non classé', // Thème par défaut
+                    date: new Date(),
+                    file: file, // Stocker l'objet File si nécessaire
+                };
+                importedFiles.unshift(newFile);
+            }
+            renderImportedFiles();
+        }
+
+        function renderImportedFiles() {
+            importedFilesList.innerHTML = '';
+            if (importedFiles.length === 0) {
+                importedFilesList.innerHTML = '<p class="text-gray-500 text-center">Aucun fichier importé.</p>';
+                return;
+            }
+
+            importedFiles.forEach(file => {
+                const fileDiv = document.createElement('div');
+                fileDiv.id = `file-${file.id}`;
+                fileDiv.className = 'p-4 border rounded-md shadow-sm flex justify-between items-center bg-gray-50';
+                fileDiv.innerHTML = `
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">${file.filename}</p>
+                        <p class="text-sm text-gray-500">Thème : ${file.theme}</p>
+                        <p class="text-xs text-gray-400">Importé le : ${file.date.toLocaleString()}</p>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 transition-colors duration-200" onclick="deleteFile('${file.id}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                importedFilesList.appendChild(fileDiv);
+            });
+        }
+        
+        // La fonction deleteFile doit être globale pour être appelée depuis le HTML
+        window.deleteFile = function(id) {
+            importedFiles = importedFiles.filter(file => file.id !== id);
+            renderImportedFiles();
+        }
+
+        // Fonction pour rendre une liste d'archives
+        function renderArchives(listId, data) {
+            const listContainer = document.getElementById(listId);
+            listContainer.innerHTML = '';
+            
+            data.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'file-list-item flex text-sm';
+                itemDiv.innerHTML = `
+                    <span class="w-1/2">${item.filename}</span>
+                    <span class="w-1/4">${item.theme}</span>
+                    <span class="w-1/4">${item.date.toLocaleString()}</span>
+                `;
+                listContainer.appendChild(itemDiv);
+            });
+        }
+
+        // Fonction pour trier les archives
+        function sortArchives(listId, sortBy) {
+            const currentSort = sortState[listId];
+            let data;
+            switch(listId) {
+                case 'text-result-archives-list':
+                    data = textResultArchives;
+                    break;
+                case 'table-result-archives-list':
+                    data = tableResultArchives;
+                    break;
+                case 'text-archives-list':
+                    data = textArchives;
+                    break;
+                case 'table-archives-list':
+                    data = tableArchives;
+                    break;
+                default:
+                    return;
+            }
+
+            if (currentSort.by === sortBy) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.by = sortBy;
+                currentSort.direction = 'asc';
+            }
+
+            data.sort((a, b) => {
+                const valA = a[sortBy];
+                const valB = b[sortBy];
+                
+                if (valA < valB) {
+                    return currentSort.direction === 'asc' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return currentSort.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+            
+            renderArchives(listId, data);
+        }
+
+        // Initialisation de l'affichage
+        document.addEventListener('DOMContentLoaded', () => {
+            renderArchives('text-result-archives-list', textResultArchives);
+            renderArchives('table-result-archives-list', tableResultArchives);
+            renderArchives('text-archives-list', textArchives);
+            renderArchives('table-archives-list', tableArchives);
+
+            document.querySelectorAll('.sortable-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const sortBy = e.target.dataset.sortBy;
+                    const listId = e.target.dataset.listId + '-list';
+                    sortArchives(listId, sortBy);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
